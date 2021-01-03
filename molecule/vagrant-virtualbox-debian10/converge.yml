@@ -1,0 +1,15 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - name: "Patch debian vagrant box"
+      apt:
+        name:
+          - gnupg2
+        update_cache: yes
+      become: true
+      when: ansible_distribution == 'Debian'
+
+    - name: "Include ansible_role_kubectl"
+      include_role:
+        name: "ansible_role_kubectl"
