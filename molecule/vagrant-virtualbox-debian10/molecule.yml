@@ -4,7 +4,7 @@ dependency:
 lint: |
   set -e
   yamllint -c .yamllint .
-  ansible-lint --exclude .travis.yml .
+  ansible-lint .
 driver:
   name: vagrant
   provider: 
