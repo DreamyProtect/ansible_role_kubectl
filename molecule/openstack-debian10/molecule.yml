@@ -1,0 +1,18 @@
+---
+dependency:
+  name: galaxy
+lint: |
+  set -e
+  yamllint -c .yamllint .
+  ansible-lint .
+driver:
+  name: delegated
+platforms:
+  - name: molecule-debian10
+    image: debian-10-openstack-amd64
+    flavor: m1.small
+    ssh_user: debian
+provisioner:
+  name: ansible
+verifier:
+  name: ansible

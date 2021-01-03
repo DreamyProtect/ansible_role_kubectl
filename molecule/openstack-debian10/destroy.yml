@@ -1,0 +1,40 @@
+---
+- name: Destoy
+  hosts: localhost
+  tasks:
+    - name: "Remove temporary security group"
+      openstack.cloud.security_group:
+        state: absent
+        auth:
+          auth_url: "{{ lookup('env', 'OS_AUTH_URL') }}"
+          username: "{{ lookup('env', 'OS_USERNAME') }}"
+          password: "{{ lookup('env', 'OS_PASSWORD') }}"
+          project_name: "{{ lookup('env', 'OS_PROJECT_NAME')}}"
+        name: molecule-kubectl-tmp-security-group
+        description: temporary security group for molecule-testing
+
+    - name: "Remove temporary debian instance"
+      openstack.cloud.server:
+        state: absent
+        auth:
+          auth_url: "{{ lookup('env', 'OS_AUTH_URL') }}"
+          username: "{{ lookup('env', 'OS_USERNAME') }}"
+          password: "{{ lookup('env', 'OS_PASSWORD') }}"
+          project_name: "{{ lookup('env', 'OS_PROJECT_NAME')}}"
+        name: "molecule-kubectl-{{ lookup('env', 'GITHUB_SHA') }}-deb10"
+        image: debian-10-openstack-amd64
+
+    - name: "Create a temporary keypair with the ssh key of the host"
+      openstack.cloud.keypair:
+        state: absent
+        auth:
+          auth_url: "{{ lookup('env', 'OS_AUTH_URL') }}"
+          username: "{{ lookup('env', 'OS_USERNAME') }}"
+          password: "{{ lookup('env', 'OS_PASSWORD') }}"
+          project_name: "{{ lookup('env', 'OS_PROJECT_NAME')}}"
+        name: "molecule-kubectl-{{ lookup('env', 'GITHUB_SHA') }}-keypair"
+
+    - name: Remove instance_config.yml
+      file:
+        state: absent
+        path: "{{ lookup('env', 'HOME') }}/.cache/molecule/ansible_role_cri_o/openstack-debian10/instance_config.yml"

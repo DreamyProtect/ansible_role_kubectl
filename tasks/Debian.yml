@@ -1,0 +1,25 @@
+---
+- name: "Install kubectl required package"
+  apt:
+    name:
+      "{{ _kubectl_required_packages }}"
+    state: present
+    update_cache: yes
+
+- name: "Add kubectl apt repository key"
+  apt_key:
+    url: "https://packages.cloud.google.com/apt/doc/apt-key.gpg"
+    state: present
+
+- name: "Add kubectl apt repository"
+  apt_repository:
+    repo: "deb https://apt.kubernetes.io/ kubernetes-xenial main"
+    filename: "/etc/apt/sources.list.d/kubernetes.list"
+    state: present
+
+- name: "Install kubectl from repository on Debian"
+  apt:
+    name:
+      "kubectl={{ kubectl_kubernetes_version }}*"
+    state: present
+    update_cache: yes

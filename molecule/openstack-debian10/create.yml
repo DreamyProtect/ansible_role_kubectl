@@ -1,0 +1,79 @@
+---
+- name: Create
+  hosts: localhost
+  vars:
+    ssh_user: debian
+    instance_name: molecule-debian10
+    ssh_security_group_rule:
+      proto: tcp
+      port: "22"
+      cidr: '0.0.0.0/0'
+  tasks:
+    - name: "Create a temporary keypair with the ssh key of the host"
+      openstack.cloud.keypair:
+        state: present
+        auth:
+          auth_url: "{{ lookup('env', 'OS_AUTH_URL') }}"
+          username: "{{ lookup('env', 'OS_USERNAME') }}"
+          password: "{{ lookup('env', 'OS_PASSWORD') }}"
+          project_name: "{{ lookup('env', 'OS_PROJECT_NAME')}}"
+        name: "molecule-kubectl-{{ lookup('env', 'GITHUB_SHA') }}-keypair"
+        public_key_file: "{{ lookup('env', 'HOME') }}/.ssh/id_rsa.pub"
+
+    - name: "Create temporary security group"
+      openstack.cloud.security_group:
+        state: present
+        auth:
+          auth_url: "{{ lookup('env', 'OS_AUTH_URL') }}"
+          username: "{{ lookup('env', 'OS_USERNAME') }}"
+          password: "{{ lookup('env', 'OS_PASSWORD') }}"
+          project_name: "{{ lookup('env', 'OS_PROJECT_NAME')}}"
+        name: molecule-kubectl-tmp-security-group
+        description: temporary security group for molecule-testing
+
+    - name: "Create ingress ssh rule"
+      openstack.cloud.security_group_rule:
+        state: present
+        auth:
+          auth_url: "{{ lookup('env', 'OS_AUTH_URL') }}"
+          username: "{{ lookup('env', 'OS_USERNAME') }}"
+          password: "{{ lookup('env', 'OS_PASSWORD') }}"
+          project_name: "{{ lookup('env', 'OS_PROJECT_NAME')}}"
+        security_group: molecule-kubectl-tmp-security-group
+        protocol: "{{ ssh_security_group_rule.proto }}"
+        port_range_min: "{{ ssh_security_group_rule.port }}"
+        port_range_max: "{{ ssh_security_group_rule.port }}"
+        remote_ip_prefix: "{{ ssh_security_group_rule.cidr }}"
+        direction: ingress
+
+    - name: "Create temporary debian instance"
+      openstack.cloud.server:
+        state: present
+        auth:
+          auth_url: "{{ lookup('env', 'OS_AUTH_URL') }}"
+          username: "{{ lookup('env', 'OS_USERNAME') }}"
+          password: "{{ lookup('env', 'OS_PASSWORD') }}"
+          project_name: "{{ lookup('env', 'OS_PROJECT_NAME')}}"
+        name: "molecule-kubectl-{{ lookup('env', 'GITHUB_SHA') }}-deb10"
+        image: debian-10-openstack-amd64
+        key_name: "molecule-kubectl-{{ lookup('env', 'GITHUB_SHA') }}-keypair"
+        flavor: m1.small
+        security_groups:
+          - default
+      register: serverinfo
+    
+    - name: Set server_ip fact
+      set_fact:
+        server_ip: "{{ serverinfo.openstack.accessIPv4 }}"
+
+    - name: Generate instance_config.yml
+      template:
+        src: instance_config.yml.j2
+        dest: "{{ lookup('env', 'HOME') }}/.cache/molecule/ansible_role_kubectl/openstack-debian10/instance_config.yml"
+    
+    - name: Wait for instance to accept ssh connections
+      wait_for:
+        host: "{{ serverinfo.openstack.accessIPv4 }}"
+        port: 22
+        delay: 10
+        state: present

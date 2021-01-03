@@ -1,0 +1,5 @@
+- address: "{{ server_ip }}"
+  identity_file: "{{ lookup('env', 'HOME') }}/.ssh/id_rsa"
+  instance: "molecule-debian10"
+  port: "22"
+  user: "{{ ssh_user }}"

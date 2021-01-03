@@ -1,0 +1,14 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+  - name: "Get kubectl binary presence status"
+    file:
+      path: "/usr/bin/kubectl"
+      state: "file"
+    register: "kubectl_presence"
+
+  - name: "Check for kubectl binary presence"
+    assert:
+      that: kubectl_presence.changed == False

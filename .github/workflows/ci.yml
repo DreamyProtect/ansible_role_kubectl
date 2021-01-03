@@ -1,0 +1,47 @@
+---
+name: Tests on Debian 10 using Openstack and Molecule
+on: [pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9.0]
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Setup Python virtualenv and packages
+        run: |
+          python3 -m venv ci-env
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r requirements.txt
+
+      - name: Setup a temporary ssh key
+        run: |
+          ssh-keygen -b 2048 -t rsa -f ${HOME}/.ssh/id_rsa -q -N ""
+
+      - name: Run molecule tests
+        env:
+          OS_AUTH_URL: ${{ secrets.OPENSTACK_AUTHURL }}
+          OS_USERNAME: ${{ secrets.OPENSTACK_USERNAME }}
+          OS_PASSWORD: ${{ secrets.OPENSTACK_PASSWORD }}
+          OS_PROJECT_NAME: ${{ secrets.OPENSTACK_PROJECTNAME }}
+          OS_PROJECT_ID: ${{ secrets.OPENSTACK_PROJECTID }}
+          OS_USER_DOMAIN_NAME: "Default"
+          OS_PROJECT_DOMAIN_ID: "default"
+          OS_REGION_NAME: ${{ secrets.OPENSTACK_REGION }}
+          OS_INTERFACE: "public"
+          OS_IDENTITY_API_VERSION: 3
+        run: |
+          molecule test -s openstack-debian10
