@@ -1,0 +1,7 @@
+---
+# default variables
+
+_kubectl_required_packages:
+  - apt-transport-https
+
+kubectl_kubernetes_version: "1.20"
